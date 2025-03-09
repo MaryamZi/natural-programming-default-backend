@@ -25,9 +25,12 @@ configurable string apiVersion = ?;
 
 final chat:Client chatClient = check new (connectionConfig, serviceUrl);
 
+type CreateChatCompletionRequest chat:CreateChatCompletionRequest;
+type CreateChatCompletionResponse chat:CreateChatCompletionResponse;
+
 service / on new http:Listener(8080) {
-    resource function post chat/complete(chat:CreateChatCompletionRequest chatBody) 
-            returns chat:CreateChatCompletionResponse|http:InternalServerError {
+    resource function post chat/complete(CreateChatCompletionRequest chatBody) 
+            returns CreateChatCompletionResponse|http:InternalServerError {
         chat:CreateChatCompletionResponse|error chatResult =
             chatClient->/deployments/[deploymentId]/chat/completions.post(apiVersion, chatBody);
 
