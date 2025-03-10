@@ -16,14 +16,19 @@
 
 import ballerina/http;
 import ballerina/log;
+import ballerina/mime;
 import ballerinax/azure.openai.chat;
 
 configurable chat:ConnectionConfig connectionConfig = ?;
 configurable string serviceUrl = ?;
 configurable string deploymentId = ?;
 configurable string apiVersion = ?;
+configurable string tokenUrl = ?;
+configurable string clientId = ?;
+configurable string redirectUri = ?;
 
 final chat:Client chatClient = check new (connectionConfig, serviceUrl);
+final http:Client tokenClient = check new (tokenUrl);
 
 type CreateChatCompletionRequest chat:CreateChatCompletionRequest;
 type CreateChatCompletionResponse chat:CreateChatCompletionResponse;
@@ -40,5 +45,22 @@ service / on new http:Listener(8080) {
 
         log:printError("Chat completion failed", chatResult);
         return {body: "Chat completion failed"};
+    }
+    
+
+    resource function get . (string code) returns json|http:InternalServerError {
+        record {
+            string access_token;
+        }|error res = tokenClient->post("/", {
+            code,
+            grant_type: "authorization_code",
+            client_id: clientId,
+            redirect_uri: redirectUri
+        }, mediaType = mime:APPLICATION_FORM_URLENCODED);
+
+        if res is error {
+            return http:INTERNAL_SERVER_ERROR;
+        }
+        return {access_token: res.access_token};
     }
 }
